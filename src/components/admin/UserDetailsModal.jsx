@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import {useState, useEffect } from "react";
 
 export function UserDetailsModal({ user, open, onOpenChange }) {
 
@@ -55,7 +55,11 @@ export function UserDetailsModal({ user, open, onOpenChange }) {
                         <div className="space-y-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Speaking Languages</label>
-                                <p className="font-medium text-slate-900">{user.spoken_languages || "English, Spanish"}</p>
+                                <p className="font-medium text-slate-900">
+                                    {Array.isArray(user.spoken_languages)
+                                    ? user.spoken_languages.map(l => l.spoken_language).join(", ")
+                                    : user.spoken_languages?.spoken_language || "English"}
+                                </p>
                             </div>
                         </div>
                     </div>

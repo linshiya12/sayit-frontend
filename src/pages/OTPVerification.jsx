@@ -88,7 +88,7 @@ export function OTPVerification() {
         console.log(data)
         setLoading(true)
         try{
-            const response=await AxiosInstance.post("auth/verify_otp/",data)
+            const response=await AxiosInstance.post("auth/verify-otp/",data)
             localStorage.removeItem(`otpSentTime_${email}`);
             console.log("res",response)
             dispatch(loginSuccess({
@@ -112,7 +112,7 @@ export function OTPVerification() {
         console.log(data)
         setresendLoading(true)
         try{
-            const response=await AxiosInstance.post("auth/resend_otp/",data)
+            const response=await AxiosInstance.post("auth/resend-otp/",data)
             toast.success("OTP sent again!");
             localStorage.setItem(`otpSentTime_${email}`, Date.now().toString());
             setResendTrigger(prev => prev + 1);

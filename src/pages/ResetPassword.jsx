@@ -26,7 +26,7 @@ export function ResetPassword() {
         try{
         const data={"password":passwordref.current.value,"confirm_password":confirmpassref.current.value,"reset_token":reset_token}
         const response=await AxiosInstance.post(
-            "auth/Password_Change/",data
+            "auth/Password-Change/",data
         )
         console.log(response)
         toast.success("password changed successfully!")

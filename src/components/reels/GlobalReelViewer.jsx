@@ -21,6 +21,9 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import formatPostDate from "@/utils/Helpers";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import UniversalShimmer from "../ui/UniversalShimmer";
 
 const REPORT_REASONS = [
     "It's spam",
@@ -99,14 +102,11 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
     const [showReportDialog, setShowReportDialog] = useState(false);
     const [loading,setLoading]=useState(false)
     const user=useSelector((state)=>state.auth.user)
-
+    const navigate=useNavigate()
+    const [commentText,setCommentText]=useState("")
+    const [loadingComments,setLoadingComments]=useState(false)
     // Local state for comments to allow deletion
-    const [comments, setComments] = useState([
-        { id: 1, user: "Alice Smith", avatar: "https://i.pravatar.cc/150?u=alice", text: "This is amazing! 🔥", time: "2m ago", isOwn: false },
-        { id: 2, user: "Bob Miller", avatar: "https://i.pravatar.cc/150?u=bob", text: "Can you share more details about this?", time: "1h ago", isOwn: false },
-        { id: 3, user: "Charlie", avatar: "https://i.pravatar.cc/150?u=charlie", text: "Love the vibes! 🎶", time: "3h ago", isOwn: false },
-        { id: 4, user: "Me", avatar: "https://i.pravatar.cc/300?u=me", text: "So glad you all like it! 🙌", time: "Just now", isOwn: true }
-    ]);
+    const [comments, setComments] = useState([]);
 
     // Play/Pause logic: 
     // - Pause if not active
@@ -164,9 +164,44 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
             setLoading(false);
         }
     };
+    
+    const fetchComments = async () => {
+        try {
+            setLoadingComments(true);
+            const res = await AxiosInstance.get(`comment/?post_id=${reel.id}`);
+            setComments(res.data.comments);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setLoadingComments(false);
+        }
+    };
 
-    const handleDeleteComment = (id) => {
-        setComments(current => current.filter(c => c.id !== id));
+    useEffect(() => {
+        if (!reel?.id) return;
+        fetchComments();
+    }, [reel.id]);
+
+    const handleCommentAdd=async()=>{
+        if (!commentText.trim()) return;
+        const data={content:commentText,post_id:reel.id}
+        try{
+            const response=await AxiosInstance.post("comment/",data)
+            setCommentText("");
+            fetchComments()
+            toast.success("comment added successfully")
+        }catch(error){
+            console.log(error)
+        }
+    }
+    const handleDeleteComment = async (id) => {
+        try{
+            const response=await AxiosInstance.delete(`comment/?comment_id=${id}`)
+            setComments(current => current.filter(c => c.id !== id));
+            toast.success("comment deleted successfully")
+        }catch(error){
+            console.log(error)
+        }
     };
 
     const handleShare = async () => {
@@ -213,7 +248,7 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
                 <div className={`absolute bottom-0 left-0 right-0 p-4 pb-20 md:pb-8 flex items-end justify-between z-10 transition-opacity duration-300 ${showMessages ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <div className="flex-1 mr-12 space-y-4">
                         <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 border-2 border-white">
+                            <Avatar className="h-10 w-10 border-2 border-white" onClick={() => navigate(`/profile/${reel.user.id}`)}>
                                 <AvatarImage src={reel.user.prof_photo} />
                                 <AvatarFallback>U</AvatarFallback>
                             </Avatar>
@@ -263,7 +298,7 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
                         {/* Messages */}
                         <ActionButton
                             icon={MessageCircle}
-                            label={reel.comments}
+                            label={comments.length}
                             onClick={() => setShowMessages(true)}
                         />
 
@@ -340,20 +375,24 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
                         {/* Panel */}
                         <div className="absolute bottom-4 left-4 right-4 h-[50%] bg-white text-slate-900 rounded-2xl shadow-2xl z-30 flex flex-col animate-in slide-in-from-bottom-10 duration-300">
                             <div className="flex items-center justify-between p-3 border-b">
-                                <span className="font-semibold text-sm">Comments ({reel.comments})</span>
+                                <span className="font-semibold text-sm">Comments ({comments.length})</span>
                                 <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={() => setShowMessages(false)}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-slate-50 no-scrollbar">
-                                {comments.map(comment => (
-                                    <Comment
-                                        key={comment.id}
-                                        {...comment}
-                                        onDelete={() => handleDeleteComment(comment.id)}
-                                    />
-                                ))}
+                                {loadingComments ? (<UniversalShimmer/>):(
+                                    comments.map(comment => (
+                                        <Comment
+                                            key={comment.id}
+                                            user={comment.user_id}
+                                            content={comment.content}
+                                            created_at={comment.created_at}
+                                            onDelete={() => handleDeleteComment(comment.id)}
+                                        />
+                                    ))
+                                )}
                             </div>
 
                             <div className="p-3 border-t bg-white flex items-center gap-2 rounded-b-2xl">
@@ -361,8 +400,14 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
                                     <AvatarImage src="https://i.pravatar.cc/300?u=me" />
                                     <AvatarFallback>ME</AvatarFallback>
                                 </Avatar>
-                                <Input placeholder="Add a comment..." className="h-8 text-sm border-none bg-slate-100 focus-visible:ring-1" />
-                                <Button size="sm" variant="ghost" className="text-blue-600 font-semibold px-2 h-8">Post</Button>
+                                 <Input
+                                    placeholder="Add a comment..."
+                                    className="h-8 text-sm border-none bg-slate-100 focus-visible:ring-1"
+                                    value={commentText}
+                                    onChange={(e) => setCommentText(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleCommentAdd()}
+                                />
+                                <Button size="sm" variant="ghost" className="text-blue-600 font-semibold px-2 h-8" onClick={()=>handleCommentAdd()}>Post</Button>
                             </div>
                         </div>
                     </>
@@ -396,18 +441,20 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
     );
 }
 
-function Comment({ user, avatar, text, time, isOwn, onDelete }) {
+function Comment({ user, content, created_at, onDelete }) {
+    const currentuser=useSelector((state)=>state.auth.user);
+    const isOwn = String(currentuser?.id) === String(user.id);
     return (
         <div className="flex gap-3 group">
             <Avatar className="h-8 w-8">
-                <AvatarImage src={avatar} />
-                <AvatarFallback>{user[0]}</AvatarFallback>
+                <AvatarImage src={user.prof_photo} />
+                <AvatarFallback>{user.first_name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
                 <div className="flex items-center gap-2 justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold">{user}</span>
-                        <span className="text-[10px] text-slate-400">{time}</span>
+                        <span className="text-xs font-semibold">{user.first_name}</span>
+                        <span className="text-[10px] text-slate-400">{formatPostDate(created_at)}</span>
                     </div>
                     {isOwn && (
                         <button
@@ -418,7 +465,7 @@ function Comment({ user, avatar, text, time, isOwn, onDelete }) {
                         </button>
                     )}
                 </div>
-                <p className="text-xs text-slate-700 mt-0.5">{text}</p>
+                <p className="text-xs text-slate-700 mt-0.5">{content}</p>
             </div>
         </div>
     );

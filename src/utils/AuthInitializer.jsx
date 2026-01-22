@@ -4,6 +4,7 @@ import AxiosInstance from "@/api/axiosInstance";
 import { loginSuccess, logout } from "./reduxstores/Authslice";
 import { baseURL } from "./constants";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const AuthInitializer = ({ children }) => {
   const dispatch = useDispatch();

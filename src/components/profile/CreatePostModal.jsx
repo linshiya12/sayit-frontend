@@ -104,7 +104,8 @@ export function CreatePostModal({ open, onOpenChange, onPostCreated }) {
                 "s3/presignedurl/",
                 {
                     "file_name":safeFileName,
-                    "file_type":file.type
+                    "file_type":file.type,
+                    "folder":"posts"
                 }
             );
             const { upload_url, file_url } = presignedres.data;

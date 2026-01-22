@@ -17,7 +17,7 @@ export function AdminLayout() {
                 await AxiosInstance.post("auth/logout/")
                 dispatch(logout());
                 toast.success("Logged out successfully");
-                navigate("/login", { replace: true });
+                navigate("/adminlogin", { replace: true });
             } catch (error) {
                 console.log(error)
                 toast.error("Logout API failed", error);

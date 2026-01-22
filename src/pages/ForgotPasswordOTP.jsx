@@ -88,7 +88,7 @@ export function ForgotPasswordOTP() {
         console.log(data)
         setLoading(true)
         try{
-            const response=await AxiosInstance.post("auth/Passwo_verifyOtp/",data)
+            const response=await AxiosInstance.post("auth/Passwo-verifyOtp/",data)
             localStorage.removeItem(`otpSentTime_${email}`);
             console.log("res",response)
             toast.success("emailvarified successfully")
@@ -108,7 +108,7 @@ export function ForgotPasswordOTP() {
         console.log(data)
         setresendLoading(true)
         try{
-            const response=await AxiosInstance.post("auth/resend_otp/",data)
+            const response=await AxiosInstance.post("auth/resend-otp/",data)
             toast.success("OTP sent again!");
             localStorage.setItem(`otpSentTime_${email}`, Date.now().toString());
             setResendTrigger(prev => prev + 1);

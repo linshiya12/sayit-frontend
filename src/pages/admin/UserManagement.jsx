@@ -1,13 +1,12 @@
-import React, { useState,useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserDetailsModal } from "@/components/admin/UserDetailsModal";
+import { ChevronLeft, ChevronRight } from "lucide-react"; // Added for icons
 import { cn } from "@/lib/utils";
 import AxiosInstance from "@/api/axiosInstance";
-
-
 
 export function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -18,16 +17,13 @@ export function UserManagement() {
         const fetchUser = async () => {
             try {
                 const response = await AxiosInstance.get("/admin/users");
-                console.log(response.data)
-                setUsers(response.data); 
+                setUsers(response.data);
             } catch (err) {
                 console.error("Failed to fetch user", err);
             }
-            };
-
-            fetchUser();
-        }, []);
-
+        };
+        fetchUser();
+    }, []);
 
     const handleView = (user) => {
         setSelectedUser(user);
@@ -36,22 +32,17 @@ export function UserManagement() {
 
     const handleBlock = async (userId, isBlocked) => {
         try {
-            // Call backend API to update is_blocked
             await AxiosInstance.put(`admin/block-user/${userId}/`, { is_blocked: !isBlocked });
-
-            // Update local state
             setUsers(users.map(user => {
-            if (user.id === userId) {
-                return { ...user, is_blocked: !isBlocked }; // toggle the value
-            }
-            return user;
+                if (user.id === userId) {
+                    return { ...user, is_blocked: !isBlocked };
+                }
+                return user;
             }));
         } catch (err) {
             console.error("Failed to update user block status", err);
         }
     };
-
-
 
     const students = users.filter(u => u.role === "student");
     const mentors = users.filter(u => u.role === "mentor");
@@ -64,20 +55,20 @@ export function UserManagement() {
             </div>
 
             <div className="space-y-8">
-                {/* Students Section */}
                 <UserSection
                     title="Students"
                     users={students}
                     onView={handleView}
                     onBlock={handleBlock}
+                    itemsPerPage={5}
                 />
 
-                {/* Mentors Section */}
                 <UserSection
                     title="Mentors"
                     users={mentors}
                     onView={handleView}
                     onBlock={handleBlock}
+                    itemsPerPage={5}
                 />
             </div>
 
@@ -90,8 +81,19 @@ export function UserManagement() {
     );
 }
 
-function UserSection({ title, users, onView, onBlock }) {
+function UserSection({ title, users, onView, onBlock, itemsPerPage = 5 }) {
+    const [currentPage, setCurrentPage] = useState(1);
+
     if (users.length === 0) return null;
+
+    // Pagination Logic
+    const totalPages = Math.ceil(users.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentUsers = users.slice(indexOfFirstItem, indexOfLastItem);
+
+    const goToNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
     return (
         <Card className="border-none shadow-sm">
@@ -113,9 +115,9 @@ function UserSection({ title, users, onView, onBlock }) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {users.map((user) => (
+                            {currentUsers.map((user,index) => (
                                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors bg-white">
-                                    <td className="px-6 py-4 text-slate-500 font-mono text-xs">{user.id}</td>
+                                    <td className="px-6 py-4 text-slate-500 font-mono text-xs">{index+1}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8">
@@ -154,19 +156,14 @@ function UserSection({ title, users, onView, onBlock }) {
                                                 className={cn(
                                                     "h-8 text-xs font-medium w-16",
                                                     user.is_blocked
-                                                        ? "bg-slate-200 text-slate-500 hover:bg-slate-300" // Unblock style
-                                                        : "bg-red-500 hover:bg-red-600 text-white" // Block style
+                                                        ? "bg-slate-200 text-slate-500 hover:bg-slate-300"
+                                                        : "bg-red-500 hover:bg-red-600 text-white"
                                                 )}
-                                                 onClick={() => onBlock(user.id, user.is_blocked)}
+                                                onClick={() => onBlock(user.id, user.is_blocked)}
                                             >
-                                                {user.is_blocked? "Unblock" : "Block"}
+                                                {user.is_blocked ? "Unblock" : "Block"}
                                             </Button>
                                         </div>
-                                        {user.is_blocked  && (
-                                            <div className="text-center mt-1">
-                                                <Badge variant="destructive" className="h-4 text-[10px] px-1 py-0">Blocked</Badge>
-                                            </div>
-                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -174,6 +171,38 @@ function UserSection({ title, users, onView, onBlock }) {
                     </table>
                 </div>
             </CardContent>
+
+            {/* Pagination Footer */}
+            <CardFooter className="flex items-center justify-between px-6 py-4 border-t bg-slate-50/50">
+                <div className="text-xs text-slate-500">
+                    Showing <span className="font-medium text-slate-700">{indexOfFirstItem + 1}</span> to{" "}
+                    <span className="font-medium text-slate-700">{Math.min(indexOfLastItem, users.length)}</span> of{" "}
+                    <span className="font-medium text-slate-700">{users.length}</span> {title.toLowerCase()}
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={goToPrevPage}
+                        disabled={currentPage === 1}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="text-xs font-medium">
+                        Page {currentPage} of {totalPages}
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            </CardFooter>
         </Card>
     );
 }

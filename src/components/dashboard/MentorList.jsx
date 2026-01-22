@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Star, MessageSquare, Calendar } from "lucide-react";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const mentors = [
     {
@@ -54,8 +55,10 @@ export function MentorList() {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold tracking-tight">Recommended Mentors</h2>
-                <Button variant="ghost" size="sm" className="text-primary hover:text-primary gap-1">
-                    View all <ArrowRight className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="text-primary hover:text-primary gap-1" asChild>
+                    <Link to="/directory">
+                        View all <ArrowRight className="h-4 w-4" />
+                    </Link>
                 </Button>
             </div>
 

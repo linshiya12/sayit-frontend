@@ -12,33 +12,41 @@ import {
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 const sidebarItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/", active: true },
-    { icon: MessageSquare, label: "Chats", href: "#" },
-    { icon: Phone, label: "Calls", href: "#" },
+    { icon: MessageSquare, label: "Chats", href:"/chats" },
+    { icon: Phone, label: "Calls", href: "/calls" },
     { icon: Users, label: "Communities", href: "#", badge: "Premium" },
     { icon: Film, label: "Reels", href: "/reels" },
     { icon: User, label: "Profile", href: "/profile" },
 ];
 
 export function Sidebar({ className }) {
+    const bucketName = import.meta.env.VITE_AWS_STORAGE_BUCKET_NAME;
+
     return (
         <aside className={cn("w-64 bg-background border-r flex flex-col h-screen sticky top-0", className)}>
             <div className="p-6">
                 <div className="flex items-center gap-2 font-bold text-xl text-primary">
-                    <div className="bg-primary text-primary-foreground p-1 rounded">
-                        <span className="text-xs">LC</span>
+                    <div className="bg-primary p-1 rounded flex items-center justify-center">
+                    <img
+                        src={`https://${bucketName}.s3.amazonaws.com/static/chat-logo.png`}
+                        alt="Room Logo"
+                        className="h-4 w-4 object-contain"
+                    />
                     </div>
+
                     SayIt
                 </div>
             </div>
 
             <nav className="flex-1 px-4 py-4 space-y-1">
                 {sidebarItems.map((item) => (
-                    <a
+                    <Link
                         key={item.label}
-                        href={item.href}
+                        to={item.href}
                         className={cn(
                             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                             item.href === window.location.pathname
@@ -53,7 +61,7 @@ export function Sidebar({ className }) {
                                 {item.badge}
                             </Badge>
                         )}
-                    </a>
+                    </Link>
                 ))}
             </nav>
 

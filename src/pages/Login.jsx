@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { loginSuccess } from "@/utils/reduxstores/Authslice";
 import { useDispatch } from "react-redux";
 import { cn } from "@/lib/utils";
+import { GoogleLogin } from "@react-oauth/google";
 
 export function Login() {
     const navigate = useNavigate();
@@ -30,8 +31,18 @@ export function Login() {
             toast.success("login successfully!")
 
         }catch(error){
-            console.log(error)
-            toast.error(error.response?.data?.non_field_errors[0]||"network error")
+            console.log(error);
+
+            const errData = error.response?.data;
+
+            const message =
+                errData?.error ||
+                errData?.non_field_errors?.[0] ||
+                errData?.detail ||
+                errData?.message ||
+                "Network error";
+
+            toast.error(message);
         }
     };
 
@@ -43,7 +54,7 @@ export function Login() {
             return;
             }
         try{
-            const response=await AxiosInstance.post("auth/forgot_password_otp/",data)
+            const response=await AxiosInstance.post("auth/forgot-password-otp/",data)
             toast.success("OTP sent successfully")
             localStorage.setItem(
                 `otpSentTime_${data.email}`,
@@ -68,7 +79,7 @@ export function Login() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <Button variant="outline" type="button" className="w-full h-11 text-base gap-2">
+                    {/* <Button variant="outline" type="button" className="w-full h-11 text-base gap-2">
                         <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                             <path
                                 d="M12.0003 20.45c4.6667 0 8.0953-3.218 8.0953-8.1567 0-.7766-.08-1.4233-.2033-2.02h-7.892v3.74h4.48c-.2867 1.8367-1.84 4.0934-4.48 4.0934-2.73 0-5.0434-1.87-5.8767-4.3834l-3.9533 3.0334c1.92 3.78 5.8633 6.36 10.5133 6.36z"
@@ -88,7 +99,38 @@ export function Login() {
                             />
                         </svg>
                         Sign in with Google
-                    </Button>
+                    </Button> */}
+                    <div className="flex justify-center">
+  <GoogleLogin
+    onSuccess={async (response) => {
+      try {
+        const res = await AxiosInstance.post(
+          "auth/google/",
+          { token: response.credential },
+          { withCredentials: true }
+        );
+
+        dispatch(loginSuccess({
+          accessToken: res.data.access,
+          user: res.data.user,
+        }));
+
+        if (!res.data.user.is_onboarded) {
+          navigate("/onboarding", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
+
+        toast.success("Login successful");
+      } catch (err) {
+        console.error(err);
+        toast.error("Google login failed");
+      }
+    }}
+    onError={() => toast.error("Google login failed")}
+  />
+</div>
+
 
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">

@@ -105,13 +105,10 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
     const navigate=useNavigate()
     const [commentText,setCommentText]=useState("")
     const [loadingComments,setLoadingComments]=useState(false)
-    // Local state for comments to allow deletion
     const [comments, setComments] = useState([]);
+    const [totalLikes,setTotalLikes] = useState(0)
 
-    // Play/Pause logic: 
-    // - Pause if not active
-    // - Pause if messages are open
-    // - Play if active AND messages are closed
+  
     useEffect(() => {
         if (!isActive) {
             videoRef.current?.pause();
@@ -141,7 +138,6 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
 
         fetchFollowStatus();
     }, [reel.user.id]);
-
 
     const handleFollow = async () => {
         if (loading) return;
@@ -219,6 +215,44 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
             alert("Link copied to clipboard!");
         }
     };
+    
+    useEffect(() => {
+        const fetchLike = async () => {
+            try {
+                const response = await AxiosInstance.get(`like/${reel.id}`);
+                setIsLiked(response.data.is_liked);
+                setTotalLikes(response.data.total_likes);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        fetchLike();
+    }, [reel.id]);
+
+    const handleLike = async () => {
+        const prevLiked = isLiked;
+        const prevCount = totalLikes;
+        const data={ post: reel.id }
+        try {
+            if (!isLiked) {
+                setIsLiked(true);
+                setTotalLikes(prev => prev + 1);
+
+                await AxiosInstance.post("like/",data);
+            } else {
+                setIsLiked(false);
+                setTotalLikes(prev => prev - 1);
+
+                await AxiosInstance.put(`like/?post=${reel.id}`);
+            }
+        } catch (error) {
+            setIsLiked(prevLiked);
+            setTotalLikes(prevCount);
+            console.error(error);
+            toast.error("Something went wrong");
+        }
+    };
 
     return (
         <div className="h-screen w-full snap-start relative flex items-center justify-center bg-gray-900">
@@ -283,15 +317,14 @@ function ReelItem({ reel, isActive, isMuted, toggleMute }) {
                     {/* Sidebar Actions */}
                     <div className="flex flex-col items-center gap-6 pb-2">
                         {/* Like */}
-                        <div className="flex flex-col items-center gap-1 cursor-pointer group" onClick={() => setIsLiked(!isLiked)}>
+                        <div className="flex flex-col items-center gap-1 cursor-pointer group" onClick={handleLike}>
                             <div className="p-2 rounded-full bg-white/10 group-active:scale-90 transition-all backdrop-blur-sm hover:bg-white/20">
                                 <Heart
                                     className={cn("h-7 w-7 transition-colors duration-300 shadow-sm", isLiked ? "text-red-500 fill-red-500" : "text-white")}
                                 />
                             </div>
                             <span className="text-xs font-semibold text-white drop-shadow-md">
-                                {/* {(typeof reel.likes === 'number' ? reel.likes + (isLiked ? 1 : 0) : reel.likes).toLocaleString()} */}
-                                0
+                               {totalLikes?(totalLikes):0}
                             </span>
                         </div>
 

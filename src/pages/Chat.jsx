@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import AxiosInstance from "@/api/axiosInstance";
 import { useParams } from 'react-router-dom';
 import { useSelector } from "react-redux";
+import UniversalShimmer from "@/components/ui/UniversalShimmer";
 
 export function Chat() {
     const [chats, setChats] = useState([]);

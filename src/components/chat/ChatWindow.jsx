@@ -196,6 +196,7 @@ export function ChatWindow({ chat, messages, onSendMessage, onDeleteMessage, onB
         };
 
         mediaRecorder.onstop = async () => {
+            console.log("hloo")
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
             
             if (audioBlob.size > 50 * 1024 * 1024) {
@@ -396,7 +397,7 @@ export function ChatWindow({ chat, messages, onSendMessage, onDeleteMessage, onB
                                 className="bg-red-600 hover:bg-red-700 text-white rounded-full px-4"
                                 onClick={handleRecordingStop}
                             >
-                                <Send className="h-4 w-4 mr-1" /> Send
+                                <Send className="h-4 w-4 mr-1" /> Stop
                             </Button>
                         </div>
                     </div>

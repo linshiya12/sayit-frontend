@@ -106,6 +106,8 @@ useEffect(() => {
 
 console.log("chatafteronline",chats)
 
+// ... imports ...
+
 useEffect(() => {
     if (!selectedChat?.group_name || !token) return;
 
@@ -115,27 +117,39 @@ useEffect(() => {
 
     socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        const currentChatId = selectedChat.id;
-
-        setMessagesByChat((prev) => {
-                // Get the old messages for this specific chat
-            const existingMessages = prev[currentChatId] || [];
-                
-            return {
+        
+        // Handle Chat Messages
+        if (data.messages && data.room_id) {
+            setMessagesByChat((prev) => ({
                 ...prev,
-                [currentChatId]: [...existingMessages, data.messages]
-            };
-        });
+                [data.room_id]: [...(prev[data.room_id] || []), data.messages]
+            }));
+        }
+
+        // Handle Status Updates (since they come to this group too)
+        if (data.type === 'user_status_update') {
+            setChats((prev) => 
+                prev.map(chat => ({
+                    ...chat,
+                    members: chat.members?.map(m => 
+                        Number(m.id) === Number(data.user_id) 
+                        ? { ...m, is_online: data.is_online, last_seen: data.last_seen } 
+                        : m
+                    )
+                }))
+            );
+        }
     };
 
     socket.onclose = () => console.log("Chat Socket Closed");
+    
     return () => {
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
             socket.close();
         }
-        chatSocketRef.current = null;
     };
-}, [selectedChat?.group_name, token, selectedChat?.id]);
+}, [selectedChat?.group_name, token]); 
+
     const handleDeleteChat = (chatId) => {
         if (window.confirm("Are you sure you want to delete this chat?")) {
             setChats(chats.filter(c => c.id !== chatId));

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, MoreVertical, Phone, Video, Mic, Image as ImageIcon, Smile, ArrowLeft, Paperclip, FileText, X ,Loader2, FileAudio} from "lucide-react";
+import { Send, MoreVertical, Phone, Video, Mic, Image as ImageIcon, Smile, ArrowLeft, Paperclip, FileText, X ,Loader2, FileAudio, VideoIcon} from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -258,6 +258,15 @@ export function ChatWindow({ chat, messages, onSendMessage, onDeleteMessage, onB
         );
     }
     
+    const handleVideoCall=async()=>{
+        try{
+            const data={"id":otherMember.id,"category":"video"}
+            const response=await AxiosInstance.post('chat/get-or-createchatroom/',data)
+            console.log(response)
+        }catch(error){
+            console.log(error)
+        }
+    }
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Header */}
@@ -290,6 +299,15 @@ export function ChatWindow({ chat, messages, onSendMessage, onDeleteMessage, onB
                 </div>
 
                 <div className="flex items-center gap-1">
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-slate-600"
+                        onClick={handleVideoCall}
+                    >
+                        <Video className="h-4 w-4" />
+                    </Button>
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
@@ -298,7 +316,6 @@ export function ChatWindow({ chat, messages, onSendMessage, onDeleteMessage, onB
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => navigate(`/profile/${otherMember.id}/`)}>View Profile</DropdownMenuItem>
-                            <DropdownMenuItem>Report</DropdownMenuItem>
                             <DropdownMenuItem className="text-red-600 focus:text-red-600 bg-red-50 focus:bg-red-100" onClick={handleClearChat}>
                                 Clear chat history
                             </DropdownMenuItem>

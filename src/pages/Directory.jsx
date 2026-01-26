@@ -40,7 +40,8 @@ export function Directory() {
 
     const handlechat=async(id)=>{
         try{
-            const response=await AxiosInstance.post(`chat/get-or-createchatroom/${id}/`)
+            const data={"id":id,"category":"chat"}
+            const response=await AxiosInstance.post(`chat/get-or-createchatroom/`,data)
             const roomName=response.data.chat_room.group_name
             navigate(`/chats/${roomName}`)
         }catch(error){

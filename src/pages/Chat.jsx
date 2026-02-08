@@ -223,7 +223,7 @@ useEffect(() => {
                     <div className="h-full w-full bg-white flex relative">
                         {/* Sidebar - Hidden on mobile if chat is selected */}
                         <div className={cn(
-                            "w-full md:w-80 lg:w-96 flex-shrink-0 border-r bg-white absolute md:relative z-10 h-full transition-transform duration-300",
+                            "w-full md:w-80 lg:w-96 shrink-0 border-r bg-white absolute md:relative z-10 h-full transition-transform duration-300",
                             selectedChat ? "-translate-x-full md:translate-x-0" : "translate-x-0"
                         )}>
                             <ChatSidebar

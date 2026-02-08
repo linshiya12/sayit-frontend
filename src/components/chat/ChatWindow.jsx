@@ -263,6 +263,7 @@ export function ChatWindow({ chat, messages, onSendMessage, onDeleteMessage, onB
             const data={"id":otherMember.id,"category":"video"}
             const response=await AxiosInstance.post('chat/get-or-createchatroom/',data)
             console.log(response)
+            navigate('/calls', { state: { autoJoin: true ,room_name:response.data.chat_room.group_name } })
         }catch(error){
             console.log(error)
         }
@@ -270,7 +271,7 @@ export function ChatWindow({ chat, messages, onSendMessage, onDeleteMessage, onB
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-3 border-b border-slate-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50 shadow-sm">
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-3 border-b border-slate-100 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/60 z-50 shadow-sm">
                 <div className="flex items-center gap-3">
                     {/* Mobile Back Button */}
                     <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-slate-500" onClick={onBack}>

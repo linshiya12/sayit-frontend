@@ -3,8 +3,7 @@ import { useDispatch } from "react-redux";
 import AxiosInstance from "@/api/axiosInstance";
 import { loginSuccess, logout } from "./reduxstores/Authslice";
 import { baseURL } from "./constants";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import UniversalShimmer from "@/components/ui/UniversalShimmer";
 
 const AuthInitializer = ({ children }) => {
   const dispatch = useDispatch();
@@ -33,7 +32,7 @@ const AuthInitializer = ({ children }) => {
 
   if (loading) {
     // Prevent the app from rendering until auth check is done
-    return <div>Loading...</div>; 
+    return <div><UniversalShimmer rows={5} /></div>; 
   }
 
   return children;

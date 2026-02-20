@@ -33,36 +33,42 @@ export function Calls() {
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoEnabled, setIsVideoEnabled] = useState(true);
     const [room, setRoom] = useState(location.state?.room_name || null);
-    const [localStream,setLocalStream]=useState(null)
-    const wsRef=useRef(null)
+    const [peer,setPeer] = useState(null)
+    const [isRemoteConnected, setIsRemoteConnected] = useState(false);
     
     const token = useSelector((state) => state.auth.accessToken);
     const localVideoRef = useRef(null);
+    const localStreamRef = useRef(null);
+    const wsRef=useRef(null)
+    const pcRef=useRef(null)
+    const remoteVideoRef=useRef(null)
     const isMentor = false; 
+    const me=useSelector((state)=>state.auth.user.id)
 
-    useEffect(() => {
-        if (callStatus!="joined") return;
-        let stream = null;
-        const startCamera = async () => {
-            if (callStatus !== 'idle') {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    setLocalStream(stream)
-                    if (localVideoRef.current) {
-                        localVideoRef.current.srcObject = stream;
-                    }
-                } catch (err) {
-                    console.error("Error accessing camera:", err);
-                }
-            }
-        };
-        startCamera();
-        return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, [callStatus]);
+
+
+    // useEffect(() => {
+    //     if (callStatus!="joined") return;
+    //     let stream = null;
+    //     const startCamera = async () => {
+    //         try {
+    //             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    //             localStreamRef.current=stream
+    //             if (localVideoRef.current) {
+    //                 localVideoRef.current.srcObject = stream;
+    //             }
+    //         } catch (err) {
+    //             console.error("Error accessing camera:", err);
+    //         }
+            
+    //     };
+    //     startCamera();
+    //     return () => {
+    //         if (stream) {
+    //             stream.getTracks().forEach(track => track.stop());
+    //         }
+    //     };
+    // }, [callStatus]);
 
     const iceServers = {
         iceServers: [
@@ -73,6 +79,31 @@ export function Calls() {
     const createPeerConnection=()=>{
         const pc=new RTCPeerConnection(iceServers)
         console.log(pc)
+        // Send ICE to backend
+        pc.onicecandidate = (event) => {
+            console.log(event,"🕐🌟⭐")
+            if (event.candidate) {
+                wsRef.current.send(JSON.stringify({
+                    type: "ice",
+                    candidate: event.candidate
+                }));
+            }
+        };
+
+        // Receive remote stream
+        pc.ontrack = (event) => {
+            remoteVideoRef.current.srcObject = event.streams[0];
+            setIsRemoteConnected(true)
+        };
+        console.log("lll",localStreamRef)
+
+        // Add local tracks
+        localStreamRef.current.getTracks().forEach(track => {
+            pc.addTrack(track, localStreamRef.current);
+        });
+
+        pcRef.current = pc;
+        return pc;
     }
 
     
@@ -82,49 +113,142 @@ export function Calls() {
     };
 
     useEffect(() => {
-
-        console.log(callStatus)
-
         if (callStatus !== "joined" || !token || !room) return;
-        console.log("hi",callStatus)
-        const url = `ws://localhost:8000/ws/video/${room}/?token=${token}`;
-        const ws = new WebSocket(url);
-        wsRef.current = ws;
+        const startCall=async()=>{
+            console.log("hi")
+            let stream = null;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localStreamRef.current=stream
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = stream;
+                }
 
-        ws.onopen = () => {
-            console.log("✅ WebSocket connected");
-            setCallStatus("joined");
-        };
+                console.log("camera ready")
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            console.log("📩 WS message:", data)
-            const type=data.type
-            switch(type){
-                case "new_peer":
-                    createPeerConnection()
+                if (callStatus !== "joined" || !token || !room ) return;
+                console.log("hi",callStatus)
+                const url = `ws://localhost:8000/ws/video/${room}/?token=${token}`;
+                const ws = new WebSocket(url);
+                wsRef.current = ws;
+
+                ws.onopen = () => {
+                    console.log("✅ WebSocket connected");
+                    setCallStatus("joined");
+                };
+
+                ws.onmessage = async (event) => {
+                    const data = JSON.parse(event.data);
+                    console.log("📩 WS message:", data)
+                    const type=data.type
+                    switch(type){
+                        case "new_peer":
+                            const otherUserId = data.user;
+                            console.log("name", data.peername)
+                            console.log("👤 New peer joined:", otherUserId);
+                            // 1️⃣ Ignore if message about myself
+                            setPeer(data.peername)
+                            if (otherUserId === me) {
+                                console.log("Ignoring myself");
+                                break;
+                            }
+                            // 2️⃣ Decide who creates offer
+                            if (me < otherUserId) {
+                                console.log("🚀 I will create OFFER");
+                                if (!pcRef.current) {
+                                    pcRef.current = createPeerConnection();
+                                }
+                                const offer = await pcRef.current.createOffer();
+                                await pcRef.current.setLocalDescription(offer);
+                                console.log("🎥 OFFER CREATED:");
+                                console.log(offer);
+                                wsRef.current.send(JSON.stringify({
+                                    type: "offer",
+                                    offer: offer,
+                                    to: otherUserId
+                                }));
+                            }else {
+                                console.log("⏳ Waiting for offer...");
+                            }
+                            break;
+                        case "offer":
+                            const senderId = data.from;
+                            if (!pcRef.current) {
+                                pcRef.current = createPeerConnection();
+                            }
+                            await pcRef.current.setRemoteDescription(
+                                new RTCSessionDescription(data.offer)
+                            )
+                            const answer=await pcRef.current.createAnswer()
+                            await pcRef.current.setLocalDescription(answer)
+                            wsRef.current.send(JSON.stringify({
+                                type:"answer",
+                                answer:answer,
+                                to: senderId
+                            }));
+                            break;
+                        case "answer":
+                            if (pcRef.current){
+                                await pcRef.current.setRemoteDescription(
+                                    new RTCSessionDescription(data.answer)
+                                )
+                                console.log("answer established🟢")
+                                
+                            }else{
+                                console.log("⚠️ Ignored duplicate answer");
+                            }
+                            break;
+                        case "ice":
+                            if (pcRef.current){
+                                pcRef.current.addIceCandidate(
+                                    new RTCIceCandidate(data.candidate)
+                                );
+                                console.log("Ice added")
+                            }
+                            break;
+                    }
+                };
+
+                ws.onerror = (err) => {
+                    console.error("❌ WebSocket error", err);
+                };
+
+                ws.onclose = () => {
+                    console.log("🔌 WebSocket disconnected");
+                };
+            } catch (err) {
+                console.error("Camera error:", err);
             }
-        };
+    };
+    startCall();
+    return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
 
-        ws.onerror = (err) => {
-            console.error("❌ WebSocket error", err);
-        };
+            if (pcRef.current) {
+                pcRef.current.close();
+                pcRef.current = null;
+            }
 
-        ws.onclose = () => {
-            console.log("🔌 WebSocket disconnected");
-        };
-
-        return () => {
-            ws.close();
+            if (localStreamRef.current) {
+                localStreamRef.current.getTracks().forEach(track => track.stop());
+            }
         };
     }, [callStatus]);
 
 
     const handleEndCall = () => {
+        if (pcRef.current) {
+        pcRef.current.close();
+        pcRef.current = null;
+        console.log("🔴 PeerConnection closed");
+        }
         setCallStatus("idle");
         setIsMuted(false);
         setIsVideoEnabled(true);
         setRoom(null);
+        setPeer(null)
         wsRef.current.onclose = () => console.log("WebSocket disconnected");
     };
 
@@ -220,7 +344,7 @@ export function Calls() {
                             <div className="flex-1 flex flex-col bg-slate-900 text-white h-full relative">
                                 <div className={cn(
                                     "flex-1 p-4 gap-4 grid min-h-0",
-                                    callStatus === 'connected' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+                                    callStatus==="joined" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
                                 )}>
                                     <div className="relative bg-slate-800 rounded-2xl overflow-hidden shadow-lg border border-slate-700/50">
                                         <video
@@ -241,13 +365,19 @@ export function Calls() {
                                             You {isMuted && '(Muted)'}
                                         </div>
                                     </div>
-
-                                    {callStatus === 'connected' && (
-                                        <div className="relative bg-slate-800 rounded-2xl overflow-hidden shadow-lg border border-slate-700/50">
-                                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=600&auto=format&fit=crop" alt="Remote" className="w-full h-full object-cover" />
-                                            <div className="absolute bottom-4 left-4 bg-black/40 px-3 py-1 rounded-lg text-sm backdrop-blur-sm">Hiroshi Tanaka</div>
-                                        </div>
-                                    )}
+                                    
+                                    <div className="relative bg-slate-800 rounded-2xl overflow-hidden shadow-lg border border-slate-700/50">
+                                        <video
+                                            ref={remoteVideoRef}
+                                            autoPlay
+                                            playsInline
+                                            className="w-full h-full object-cover"
+                                        />
+                                     
+                                        {isRemoteConnected && <div className="absolute bottom-4 left-4 bg-black/40 px-3 py-1 rounded-lg text-sm backdrop-blur-sm">
+                                            {peer} {isMuted && '(Muted)'}
+                                        </div>}
+                                    </div>
                                 </div>
 
                                 <div className="h-20 shrink-0 flex items-center justify-center gap-4 bg-slate-900/90 backdrop-blur border-t border-slate-800">

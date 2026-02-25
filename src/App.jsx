@@ -23,6 +23,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Directory } from './pages/Directory';
 import { PostManagement } from './pages/admin/PostManagement';
 import Calls from './pages/Calls';
+import { BookingSuccess } from './pages/BookingSuccess';
 
 function App() {
   const GOOGLE_OAUTH_CLIENT_ID = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
@@ -39,7 +40,8 @@ function App() {
         { path: "chats", element: <Chat /> },
         { path: "chats/:roomName", element:<Chat/>},
         { path: "directory", element: <Directory /> },
-        { path: "calls", element:<Calls/>}
+        { path: "calls", element:<Calls/>},
+        {path:"booking-success", element:<BookingSuccess />}
       ],
     },
     {

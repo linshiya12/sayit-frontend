@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, Star, MessageSquare, Filter, X } from "lucide-react";
+import { Search, Star, MessageSquare, Filter, X, Globe } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useEffect } from "react";
 import AxiosInstance from "@/api/axiosInstance";
@@ -27,9 +27,94 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { addDays, format, isAfter, isBefore, startOfDay } from "date-fns";
 
-
+const user = [
+    {
+        id: 1,
+        name: "Aisha Patel",
+        native: { lang: "Japanese", flag: "🇯🇵" },
+        known: ["English", "Spanish"],
+        level: "Beginner Level",
+        languages: "Malayalam, Hindi",
+        learning: "English (Beginner)",
+        goal: "Improve speaking confidence",
+        bio: "Motivated learner aiming to improve English for career and daily communication. Interested in conversation...",
+        rating: 4.9,
+        reviews: 127,
+        image: "https://i.pravatar.cc/150?u=aisha",
+    },
+    {
+        id: 2,
+        name: "Carlos Gomez",
+        native: { lang: "Spanish", flag: "🇪🇸" },
+        known: ["English", "Portuguese"],
+        level: "Intermediate Level",
+        languages: "Spanish",
+        learning: "English (Intermediate)",
+        goal: "Business English fluency",
+        bio: "Looking for partners to practice business English. I can help you with Spanish grammar and vocabulary.",
+        rating: 4.8,
+        reviews: 93,
+        image: "https://i.pravatar.cc/150?u=carlos",
+    },
+    {
+        id: 3,
+        name: "Sarah Kim",
+        native: { lang: "Korean", flag: "🇰🇷" },
+        known: ["English", "Japanese"],
+        level: "Beginner Level",
+        languages: "Korean",
+        learning: "English (Beginner)",
+        goal: "Travel preparation",
+        bio: "Planning a trip to London next year. Want to learn basic phrases and cultural tips.",
+        rating: 5.0,
+        reviews: 42,
+        image: "https://i.pravatar.cc/150?u=sarah",
+    },
+    {
+        id: 4,
+        name: "David Chen",
+        native: { lang: "Mandarin", flag: "🇨🇳" },
+        known: ["English"],
+        level: "Advanced Level",
+        languages: "Mandarin",
+        learning: "French (Beginner)",
+        goal: "Learn a third language",
+        bio: "Native Mandarin speaker looking for French exchange. Fluent in English and can help with that too.",
+        rating: 4.7,
+        reviews: 156,
+        image: "https://i.pravatar.cc/150?u=david",
+    },
+    {
+        id: 5,
+        name: "Emily Wilson",
+        native: { lang: "English", flag: "🇺🇸" },
+        known: ["French"],
+        level: "Intermediate Level",
+        languages: "English",
+        learning: "Spanish (Intermediate)",
+        goal: "Connect with culture",
+        bio: "Love Latin American culture and want to improve my Spanish speaking skills through casual conversation.",
+        rating: 4.9,
+        reviews: 88,
+        image: "https://i.pravatar.cc/150?u=emily",
+    },
+    {
+        id: 6,
+        name: "Rahul Sharma",
+        native: { lang: "Hindi", flag: "🇮🇳" },
+        known: ["English", "Bengali"],
+        level: "Beginner Level",
+        languages: "Hindi, Bengali",
+        learning: "German (Beginner)",
+        goal: "Higher studies in Germany",
+        bio: "Preparing for higher studies in Berlin. Need help with basic German and daily life vocabulary.",
+        rating: 4.8,
+        reviews: 67,
+        image: "https://i.pravatar.cc/150?u=rahul",
+    }
+];
 export function Directory() {
     const [searchQuery, setSearchQuery] = useState("");
     const [users, setUsers] = useState([]);
@@ -40,6 +125,21 @@ export function Directory() {
     const [timeOfDay, setTimeOfDay] = useState("morning");
     const navigate=useNavigate()
 
+    const today = startOfDay(new Date());
+    const tomorrow = addDays(today, 1);
+    const maxDate = addDays(tomorrow, 14);
+
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const getTimeZoneAbbr = () => {
+        try {
+            return new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' })
+                .formatToParts(new Date())
+                .find(part => part.type === 'timeZoneName')?.value || "Local";
+        } catch (e) {
+            return "Local";
+        }
+    }
+    const tzAbbr = getTimeZoneAbbr();
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -194,7 +294,7 @@ export function Directory() {
                                             
                                         </p>
                                     </div>
-                                    <div className="flex gap-2 w-full mt-2">
+                                    <div className="flex gap-2 w-1/2 mt-2">
                                         <Button variant="outline" className="w-full text-blue-500 border-blue-200 hover:bg-blue-50 bg-white shadow-none" onClick={()=>handlechat(user.id)}>
                                             chat
                                         </Button>
@@ -217,166 +317,191 @@ export function Directory() {
 
                         {/* Booking Modal */}
                         <Dialog open={!!bookingUser} onOpenChange={(open) => !open && setBookingUser(null)}>
-                            <DialogContent className="sm:max-w-[425px] p-0 rounded-2xl overflow-hidden gap-0 bg-white">
+                            <DialogContent className="max-w-4xl w-[95vw] p-0 flex flex-col overflow-hidden h-[90vh] md:h-auto md:max-h-[800px] bg-white rounded-2xl md:rounded-3xl border border-slate-200">
                                 {bookingUser && (
                                     <>
-                                        <DialogHeader className="p-4 border-b border-slate-100 flex flex-row items-start justify-between m-0">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-12 w-12 border border-slate-100 shadow-sm">
-                                                    <AvatarImage src={bookingUser.image} />
-                                                    <AvatarFallback>{bookingUser.name[0]}</AvatarFallback>
+                                        <DialogHeader className="p-4 md:p-6 border-b border-slate-100 flex flex-row items-center justify-between shrink-0 bg-white z-10 m-0">
+                                            <div className="flex items-center gap-4">
+                                                <Avatar className="h-12 w-12 md:h-14 md:w-14 border border-slate-100 shadow-sm">
+                                                    <AvatarImage src={bookingUser.prof_photo} />
+                                                    <AvatarFallback>{bookingUser.first_name[0]}</AvatarFallback>
                                                 </Avatar>
-                                                <div className="space-y-1">
-                                                    <DialogTitle className="text-lg font-bold leading-none">{bookingUser.name}</DialogTitle>
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider">
-                                                            {bookingUser.native.lang}
+                                                <div className="space-y-1 md:space-y-1.5 flex flex-col items-start justify-center">
+                                                    <DialogTitle className="text-lg md:text-xl font-bold leading-none">{bookingUser.first_name}</DialogTitle>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium uppercase tracking-wider">
+                                                            {bookingUser.native_language}
                                                         </span>
-                                                        {bookingUser.known.slice(0, 1).map(lang => (
-                                                            <span key={lang} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider">
-                                                                {lang}
+                                                        {bookingUser.spoken_languages.map(lang => (
+                                                            <span key={lang.id} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium uppercase tracking-wider">
+                                                             {lang.spoken_language}
                                                             </span>
                                                         ))}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <DialogClose className="h-8 w-8 !mt-0 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 absolute right-4 top-4">
-                                                <X className="h-4 w-4" />
+                                            <DialogClose className="h-8 w-8 mt-0! flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400">
+                                                <X className="h-5 w-5" />
                                             </DialogClose>
                                         </DialogHeader>
 
-                                        <div className="px-6 py-4 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                                            <div>
-                                                <h3 className="text-sm font-semibold text-slate-800 mb-3">Select Date</h3>
-                                                <div className="flex justify-center">
+                                        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden h-full">
+                                            {/* Left side: Calendar */}
+                                            <div className="p-4 md:p-6 border-b lg:border-b-0 lg:border-r flex flex-col items-center bg-white overflow-y-auto shrink-0 lg:w-80">
+                                                <div className="w-full flex justify-between items-center mb-4">
+                                                    <h3 className="text-sm md:text-base font-semibold text-slate-900">Select Date</h3>
+                                                </div>
+                                                <div className="w-full flex justify-center bg-white rounded-xl border border-slate-100 shadow-sm p-3">
                                                     <Calendar
                                                         mode="single"
                                                         selected={date}
                                                         onSelect={(d) => d && setDate(d)}
-                                                        className="rounded-md border-0 p-0"
-                                                        classNames={{
-                                                            day_selected: "bg-blue-500 text-white hover:bg-blue-500 hover:text-white focus:bg-blue-500 focus:text-white rounded-full",
-                                                            day_today: "bg-slate-100 text-slate-900 rounded-full",
-                                                            day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-slate-100 rounded-full flex items-center justify-center",
-                                                            head_cell: "text-slate-500 font-medium w-9 font-normal text-[0.8rem]",
-                                                            caption: "flex justify-between pt-1 relative items-center mb-4",
-                                                            caption_label: "text-sm font-medium",
-                                                            nav: "space-x-1 flex items-center",
-                                                            nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 border-0 flex justify-center items-center shadow-none",
-                                                        }}
+                                                        className="w-full max-w-full"
+                                                        disabled={(date) => isBefore(date, tomorrow) || isAfter(date, maxDate)}
+                                                        fromDate={tomorrow}
                                                     />
                                                 </div>
+                                                <div className="mt-6 flex items-center gap-2 text-xs md:text-sm text-slate-500 bg-slate-50 px-3 py-2.5 rounded-lg w-full justify-center border border-slate-100">
+                                                    <Globe className="h-4 w-4 shrink-0 text-blue-500" />
+                                                    <span className="text-center truncate">Time displayed in <strong className="text-slate-700">{userTimezone} ({tzAbbr})</strong></span>
+                                                </div>
                                             </div>
 
-                                            <div>
-                                                <h3 className="text-sm font-semibold text-slate-800 mb-3">Available Time Slots</h3>
-                                                <Tabs value={timeOfDay} onValueChange={setTimeOfDay} className="w-full">
-                                                    <TabsList className="w-full bg-transparent border-b border-slate-200 rounded-none h-auto p-0 justify-between">
-                                                        <TabsTrigger
-                                                            value="morning"
-                                                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-500 data-[state=active]:bg-transparent shadow-none w-1/3 py-2 text-sm text-slate-500"
-                                                        >
-                                                            Morning
-                                                        </TabsTrigger>
-                                                        <TabsTrigger
-                                                            value="afternoon"
-                                                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-500 data-[state=active]:bg-transparent shadow-none w-1/3 py-2 text-sm text-slate-500"
-                                                        >
-                                                            Afternoon
-                                                        </TabsTrigger>
-                                                        <TabsTrigger
-                                                            value="evening"
-                                                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-500 data-[state=active]:bg-transparent shadow-none w-1/3 py-2 text-sm text-slate-500"
-                                                        >
-                                                            Evening
-                                                        </TabsTrigger>
-                                                    </TabsList>
+                                            {/* Right side: Timeslots & Summary */}
+                                            <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden min-w-0">
 
-                                                    <TabsContent value="morning" className="grid grid-cols-2 gap-3 mt-4">
-                                                        {["8.00 Am", "9.00 Am", "10.00 Am", "11.00 Am", "12.00 Am"].map((time, idx) => (
-                                                            <Button
-                                                                key={time}
-                                                                variant={timeSlot === time ? "default" : "outline"}
-                                                                className={`rounded-full shadow-none ${timeSlot === time
-                                                                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
-                                                                        : idx === 2
-                                                                            ? 'bg-slate-100 text-slate-400 border-none hover:bg-slate-100 cursor-not-allowed'
-                                                                            : 'border-slate-200 text-slate-700 hover:border-slate-300'
-                                                                    }`}
-                                                                onClick={() => idx !== 2 && setTimeSlot(time)}
-                                                                disabled={idx === 2}
-                                                            >
-                                                                {time}
-                                                            </Button>
-                                                        ))}
-                                                    </TabsContent>
-                                                    <TabsContent value="afternoon" className="grid grid-cols-2 gap-3 mt-4">
-                                                        {["1.00 Pm", "2.00 Pm", "3.00 Pm", "4.00 Pm"].map((time, idx) => (
-                                                            <Button
-                                                                key={time}
-                                                                variant={timeSlot === time ? "default" : "outline"}
-                                                                className={`rounded-full shadow-none ${timeSlot === time ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200' : 'border-slate-200 text-slate-700 hover:border-slate-300'}`}
-                                                                onClick={() => setTimeSlot(time)}
-                                                            >
-                                                                {time}
-                                                            </Button>
-                                                        ))}
-                                                    </TabsContent>
-                                                    <TabsContent value="evening" className="grid grid-cols-2 gap-3 mt-4">
-                                                        {["5.00 Pm", "6.00 Pm", "7.00 Pm", "8.00 Pm"].map((time, idx) => (
-                                                            <Button
-                                                                key={time}
-                                                                variant={timeSlot === time ? "default" : "outline"}
-                                                                className={`rounded-full shadow-none ${timeSlot === time ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200' : 'border-slate-200 text-slate-700 hover:border-slate-300'}`}
-                                                                onClick={() => setTimeSlot(time)}
-                                                            >
-                                                                {time}
-                                                            </Button>
-                                                        ))}
-                                                    </TabsContent>
-                                                </Tabs>
-                                            </div>
+                                                {/* Tabs Selection Area */}
+                                                <div className="px-4 pt-4 md:px-6 md:pt-6 pb-2 shrink-0">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h3 className="text-sm md:text-base font-semibold text-slate-900">
+                                                            Select a time slot
+                                                        </h3>
+                                                    </div>
+                                                    <Tabs value={timeOfDay} onValueChange={setTimeOfDay} className="w-full">
+                                                        <div className="bg-white rounded-xl p-1 border border-slate-200 shadow-sm flex mb-2">
+                                                            <TabsList className="flex flex-1 w-full bg-transparent justify-around h-auto p-0 rounded-lg">
+                                                                <TabsTrigger
+                                                                    value="morning"
+                                                                    className="flex-1 py-2.5 text-xs md:text-sm font-medium rounded-lg text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all border-none"
+                                                                >
+                                                                    Morning
+                                                                </TabsTrigger>
+                                                                <TabsTrigger
+                                                                    value="afternoon"
+                                                                    className="flex-1 py-2.5 text-xs md:text-sm font-medium rounded-lg text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all border-none"
+                                                                >
+                                                                    Afternoon
+                                                                </TabsTrigger>
+                                                                <TabsTrigger
+                                                                    value="evening"
+                                                                    className="flex-1 py-2.5 text-xs md:text-sm font-medium rounded-lg text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all border-none"
+                                                                >
+                                                                    Evening
+                                                                </TabsTrigger>
+                                                            </TabsList>
+                                                        </div>
 
-                                            <div>
-                                                <h3 className="text-sm font-semibold text-slate-800 mb-2">Booking Summary</h3>
-                                                <div className="bg-slate-50 rounded-xl p-4 space-y-3">
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-slate-500 font-medium">Date</span>
-                                                        <span className="font-semibold text-slate-800">{format(date, "MMMM do, yyyy").toLowerCase()}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-slate-500 font-medium">Time</span>
-                                                        <span className="font-semibold text-slate-800">{timeSlot}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-slate-500 font-medium">Duration</span>
-                                                        <span className="font-semibold text-slate-800">60 minutes</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-200">
-                                                        <span className="text-slate-500 font-medium">Price</span>
-                                                        <span className="font-bold text-slate-900">₹350/hr</span>
+                                                        {/* Timeslot Content Area (Scrollable) */}
+                                                        <div className="mt-2 md:mt-4 overflow-y-auto">
+                                                            <TabsContent value="morning" className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 m-0">
+                                                                {["8.00 Am", "9.00 Am", "10.00 Am", "11.00 Am", "12.00 Am"].map((time) => (
+                                                                    <Button
+                                                                        key={time}
+                                                                        variant={timeSlot === time ? "default" : "outline"}
+                                                                        className={`rounded-lg py-2 h-auto text-xs md:text-sm font-medium transition-all ${timeSlot === time
+                                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-1 ring-blue-600'
+                                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
+                                                                            }`}
+                                                                        onClick={() => setTimeSlot(time)}
+                                                                    >
+                                                                        {time}
+                                                                    </Button>
+                                                                ))}
+                                                            </TabsContent>
+                                                            <TabsContent value="afternoon" className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 m-0">
+                                                                {["1.00 Pm", "2.00 Pm", "3.00 Pm", "4.00 Pm"].map((time) => (
+                                                                    <Button
+                                                                        key={time}
+                                                                        variant={timeSlot === time ? "default" : "outline"}
+                                                                        className={`rounded-lg py-2 h-auto text-xs md:text-sm font-medium transition-all ${timeSlot === time
+                                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-1 ring-blue-600'
+                                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
+                                                                            }`}
+                                                                        onClick={() => setTimeSlot(time)}
+                                                                    >
+                                                                        {time}
+                                                                    </Button>
+                                                                ))}
+                                                            </TabsContent>
+                                                            <TabsContent value="evening" className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 m-0">
+                                                                {["5.00 Pm", "6.00 Pm", "7.00 Pm", "8.00 Pm"].map((time) => (
+                                                                    <Button
+                                                                        key={time}
+                                                                        variant={timeSlot === time ? "default" : "outline"}
+                                                                        className={`rounded-lg py-2 h-auto text-xs md:text-sm font-medium transition-all ${timeSlot === time
+                                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-1 ring-blue-600'
+                                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
+                                                                            }`}
+                                                                        onClick={() => setTimeSlot(time)}
+                                                                    >
+                                                                        {time}
+                                                                    </Button>
+                                                                ))}
+                                                            </TabsContent>
+                                                        </div>
+                                                    </Tabs>
+                                                </div>
+
+                                                {/* Push to bottom spacer */}
+                                                <div className="flex-1" />
+
+                                                {/* Summary & Actions sticky footer */}
+                                                <div className="bg-white border-t border-slate-200 shrink-0">
+                                                    <div className="p-4 md:p-6 pb-4">
+                                                        <h4 className="text-xs md:text-sm font-semibold text-slate-900 mb-3 block">
+                                                            Booking Summary
+                                                        </h4>
+
+                                                        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4 justify-between bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4 sm:mb-6">
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-xs font-medium text-slate-500">Date</span>
+                                                                <span className="text-sm font-semibold text-slate-800">{format(date, "MMM do, yyyy")}</span>
+                                                            </div>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-xs font-medium text-slate-500">Time</span>
+                                                                <span className="text-sm font-semibold text-slate-800">{timeSlot}</span>
+                                                            </div>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-xs font-medium text-slate-500">Duration</span>
+                                                                <span className="text-sm font-semibold text-slate-800">60m</span>
+                                                            </div>
+                                                            <div className="flex flex-col gap-1 text-right sm:text-left">
+                                                                <span className="text-xs font-medium text-slate-500">Total Price</span>
+                                                                <span className="text-sm font-bold text-slate-900">₹350</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex flex-col-reverse sm:flex-row gap-3">
+                                                            <Button
+                                                                variant="outline"
+                                                                className="w-full sm:w-auto sm:flex-1 py-2.5 h-auto text-sm bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm rounded-xl font-medium"
+                                                                onClick={() => setBookingUser(null)}
+                                                            >
+                                                                Cancel
+                                                            </Button>
+                                                            <Button
+                                                                className="w-full sm:w-auto sm:flex-2 py-2.5 h-auto text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md rounded-xl font-medium"
+                                                                onClick={() => {
+                                                                    setBookingUser(null);
+                                                                    navigate("/booking-success");
+                                                                }}
+                                                            >
+                                                                Confirm & Pay
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        <div className="p-4 pt-2 border-t border-slate-100 flex gap-3 bg-white">
-                                            <Button
-                                                variant="outline"
-                                                className="flex-1 rounded-full border-slate-200 shadow-none text-slate-600 hover:bg-slate-50 font-medium"
-                                                onClick={() => setBookingUser(null)}
-                                            >
-                                                cancel
-                                            </Button>
-                                            <Button
-                                                className="flex-1 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-none font-medium"
-                                                onClick={() => {
-                                                    setBookingUser(null);
-                                                    navigate("/booking-success");
-                                                }}
-                                            >
-                                                Pay & Book
-                                            </Button>
                                         </div>
                                     </>
                                 )}

@@ -35,6 +35,7 @@ export function Calls() {
     const [room, setRoom] = useState(location.state?.room_name || null);
     const [peer,setPeer] = useState(null)
     const [isRemoteConnected, setIsRemoteConnected] = useState(false);
+    const [upcomingSessions,setUpcomingSessions] = useState([])
     
     const token = useSelector((state) => state.auth.accessToken);
     const localVideoRef = useRef(null);
@@ -45,30 +46,6 @@ export function Calls() {
     const isMentor = false; 
     const me=useSelector((state)=>state.auth.user.id)
 
-
-
-    // useEffect(() => {
-    //     if (callStatus!="joined") return;
-    //     let stream = null;
-    //     const startCamera = async () => {
-    //         try {
-    //             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    //             localStreamRef.current=stream
-    //             if (localVideoRef.current) {
-    //                 localVideoRef.current.srcObject = stream;
-    //             }
-    //         } catch (err) {
-    //             console.error("Error accessing camera:", err);
-    //         }
-            
-    //     };
-    //     startCamera();
-    //     return () => {
-    //         if (stream) {
-    //             stream.getTracks().forEach(track => track.stop());
-    //         }
-    //     };
-    // }, [callStatus]);
 
     const iceServers = {
         iceServers: [
@@ -112,6 +89,7 @@ export function Calls() {
         setCallStatus("joined");
     };
 
+
     useEffect(() => {
         if (callStatus !== "joined" || !token || !room) return;
         const startCall=async()=>{
@@ -146,13 +124,13 @@ export function Calls() {
                             const otherUserId = data.user;
                             console.log("name", data.peername)
                             console.log("👤 New peer joined:", otherUserId);
-                            // 1️⃣ Ignore if message about myself
+                            
                             setPeer(data.peername)
                             if (otherUserId === me) {
                                 console.log("Ignoring myself");
                                 break;
                             }
-                            // 2️⃣ Decide who creates offer
+                            
                             if (me < otherUserId) {
                                 console.log("🚀 I will create OFFER");
                                 if (!pcRef.current) {

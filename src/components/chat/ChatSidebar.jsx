@@ -248,7 +248,7 @@ export function ChatSidebar({ chats, selectedChatId, onSelectChat, onDeleteChat,
 
                 <TabsContent value="calls" className="flex-1 flex flex-col m-0 overflow-hidden">
                     {/* Sub-Tabs for Calls */}
-                    <div className="px-2 pt-2 pb-0">
+                    {/* <div className="px-2 pt-2 pb-0">
                         <Tabs defaultValue="all" value={callFilter} onValueChange={setCallFilter} className="w-full">
                             <TabsList className="grid w-full grid-cols-4 bg-slate-100/50 p-1 h-auto">
                                 <TabsTrigger value="all" className="text-[10px] py-1.5 h-auto">All</TabsTrigger>
@@ -257,7 +257,7 @@ export function ChatSidebar({ chats, selectedChatId, onSelectChat, onDeleteChat,
                                 <TabsTrigger value="completed" className="text-[10px] py-1.5 h-auto">Done</TabsTrigger>
                             </TabsList>
                         </Tabs>
-                    </div>
+                    </div> */}
 
                     <div className="flex-1 overflow-y-auto">
                         {filteredCalls.length === 0 ? (

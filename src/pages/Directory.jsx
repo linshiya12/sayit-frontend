@@ -28,6 +28,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { addDays, format, isAfter, isBefore, startOfDay } from "date-fns";
+import { toast } from "sonner";
 
 const user = [
     {
@@ -120,10 +121,11 @@ export function Directory() {
     const [users, setUsers] = useState([]);
     const currentuser = useSelector((state) => state.auth.user);
     const [bookingUser, setBookingUser] = useState(null);
-    const [date, setDate] = useState(new Date("2025-06-29"));
-    const [timeSlot, setTimeSlot] = useState("9.00 Am");
+    const [date, setDate] = useState("");
+    const [selectedSlot, setSelectedSlot] = useState(null);
     const [timeOfDay, setTimeOfDay] = useState("morning");
     const navigate=useNavigate()
+    const [mentorAvailability, setMentorAvailability] = useState([]);
 
     const today = startOfDay(new Date());
     const tomorrow = addDays(today, 1);
@@ -164,8 +166,36 @@ export function Directory() {
         }
     }
 
-    // 1. Determine which users to show based on role
-    // Using useMemo prevents unnecessary calculations on every keystroke
+    const handleBook = async () => {
+        if (!bookingUser || !selectedSlot) return; // Added check for selectedSlot
+        
+        try {
+            const chatRoomPayload = { "id": bookingUser.id, "category": "video" };
+            const groupResponse = await AxiosInstance.post(`chat/get-or-createchatroom/`, chatRoomPayload);
+            
+            const roomId = groupResponse.data.chat_room.id; 
+
+            const bookingdata = {
+                booked_mentor: bookingUser.id,
+                booked_call: roomId, 
+                booking_slot: selectedSlot.id,
+                amount_paid: bookingUser.hourlyrate,
+            };
+
+            const bookingResponse = await AxiosInstance.post('bookingcall/', bookingdata);
+            
+            console.log("Success:", bookingResponse.data);
+            navigate("/booking-success");
+
+        } catch (error) {
+            console.error(error);
+            const msg = error.response?.data?.error || "Booking failed";
+            toast.error(msg);
+        } finally {
+            setBookingUser(null);
+        }
+    };
+
     const filteredUsers = useMemo(() => {
         if (!currentuser) return [];
 
@@ -186,6 +216,65 @@ export function Directory() {
         });
     }, [users, searchQuery, currentuser]);
 
+   const getGroupedSlots = (period) => {
+        return mentorAvailability.filter(slot => {
+            // Ensure the slot isn't already booked
+            if (slot.is_booked) return false;
+
+            const slotTime = new Date(slot.available_time);
+            const hour = slotTime.getHours();
+
+            if (period === 'morning') return hour < 12;
+            if (period === 'afternoon') return hour >= 12 && hour < 17;
+            if (period === 'evening') return hour >= 17;
+            return false;
+        });
+    };
+    useEffect(() => {
+        const fetchAvailability = async () => {
+            if (!bookingUser || !date) return;
+            try {
+                const formattedDate = format(date, "yyyy-MM-dd");
+                const response = await AxiosInstance.get(`availability/${bookingUser.id}/`, {
+                    params: { date: formattedDate }
+                });
+                setMentorAvailability(response.data);
+            } catch (err) {
+                console.error("Failed to fetch slots", err);
+                setMentorAvailability([]);
+            }
+        };
+        fetchAvailability();
+    }, [bookingUser, date]);
+
+    const renderSlots = (period) => {
+        const slots = getGroupedSlots(period);
+            if (slots.length === 0) {
+                return (
+                    <div className="col-span-3 py-8 text-center text-slate-400 text-xs bg-slate-50/50 rounded-xl border border-dashed">
+                        No {period} slots available
+                    </div>
+                );
+            }
+
+            return slots.map((slot) => {
+                const timeLabel = format(new Date(slot.available_time), "hh:mm a");
+                return (
+                    <Button
+                        key={slot.id}
+                        variant={selectedSlot?.id === slot.id ? "default" : "outline"}
+                        className={`rounded-lg py-2 h-auto text-xs md:text-sm font-medium transition-all ${
+                            selectedSlot?.id === slot.id
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
+                        }`}
+                        onClick={() => setSelectedSlot(slot)}
+                    >
+                        {timeLabel}
+                    </Button>
+                );
+            });
+        };
     // 2. Dynamic Title
     const title = currentuser?.role === "mentor" ? "Students" : "Mentors";
 
@@ -222,7 +311,7 @@ export function Directory() {
                                 <div className="relative flex-1">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search mentors" // Keeping "Search mentors" to match screenshot exact text, though logic implies students
+                                        placeholder={`Search ${title}`}
                                         className="pl-9 bg-slate-50 border-slate-200"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -294,17 +383,26 @@ export function Directory() {
                                             
                                         </p>
                                     </div>
-                                    <div className="flex gap-2 w-1/2 mt-2">
-                                        <Button variant="outline" className="w-full text-blue-500 border-blue-200 hover:bg-blue-50 bg-white shadow-none" onClick={()=>handlechat(user.id)}>
-                                            chat
-                                        </Button>
-                                        <Button
-                                            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
-                                            onClick={() => setBookingUser(user)}
-                                        >
-                                            Book
-                                        </Button>
-                                    </div>
+                                    {currentuser.role==="student"?(
+                                        <div className="flex gap-2 w-1/2 mt-2">
+                                            <Button variant="outline" className="w-full text-blue-500 border-blue-200 hover:bg-blue-50 bg-white shadow-none" onClick={()=>handlechat(user.id)}>
+                                                chat
+                                            </Button>
+                                            <Button
+                                                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                                                onClick={() => setBookingUser(user)}
+                                            >
+                                                Book
+                                            </Button>
+                                        </div>
+                                    ):
+                                        (<div className="flex gap-2 mt-2">
+                                            <Button variant="outline" className="w-full text-blue-500 border-blue-200 hover:bg-blue-50 bg-white shadow-none" onClick={()=>handlechat(user.id)}>
+                                                chat
+                                            </Button>
+                                           
+                                        </div>
+                                        )}
                                 </div>
                             ))}
                         </div>
@@ -357,8 +455,8 @@ export function Directory() {
                                                         selected={date}
                                                         onSelect={(d) => d && setDate(d)}
                                                         className="w-full max-w-full"
-                                                        disabled={(date) => isBefore(date, tomorrow) || isAfter(date, maxDate)}
-                                                        fromDate={tomorrow}
+                                                        disabled={(date) => isBefore(date, today) || isAfter(date, maxDate)}
+                                                        fromDate={today}
                                                     />
                                                 </div>
                                                 <div className="mt-6 flex items-center gap-2 text-xs md:text-sm text-slate-500 bg-slate-50 px-3 py-2.5 rounded-lg w-full justify-center border border-slate-100">
@@ -404,49 +502,13 @@ export function Directory() {
                                                         {/* Timeslot Content Area (Scrollable) */}
                                                         <div className="mt-2 md:mt-4 overflow-y-auto">
                                                             <TabsContent value="morning" className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 m-0">
-                                                                {["8.00 Am", "9.00 Am", "10.00 Am", "11.00 Am", "12.00 Am"].map((time) => (
-                                                                    <Button
-                                                                        key={time}
-                                                                        variant={timeSlot === time ? "default" : "outline"}
-                                                                        className={`rounded-lg py-2 h-auto text-xs md:text-sm font-medium transition-all ${timeSlot === time
-                                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-1 ring-blue-600'
-                                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
-                                                                            }`}
-                                                                        onClick={() => setTimeSlot(time)}
-                                                                    >
-                                                                        {time}
-                                                                    </Button>
-                                                                ))}
+                                                                {renderSlots('morning')}
                                                             </TabsContent>
                                                             <TabsContent value="afternoon" className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 m-0">
-                                                                {["1.00 Pm", "2.00 Pm", "3.00 Pm", "4.00 Pm"].map((time) => (
-                                                                    <Button
-                                                                        key={time}
-                                                                        variant={timeSlot === time ? "default" : "outline"}
-                                                                        className={`rounded-lg py-2 h-auto text-xs md:text-sm font-medium transition-all ${timeSlot === time
-                                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-1 ring-blue-600'
-                                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
-                                                                            }`}
-                                                                        onClick={() => setTimeSlot(time)}
-                                                                    >
-                                                                        {time}
-                                                                    </Button>
-                                                                ))}
+                                                                {renderSlots('afternoon')}
                                                             </TabsContent>
                                                             <TabsContent value="evening" className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 m-0">
-                                                                {["5.00 Pm", "6.00 Pm", "7.00 Pm", "8.00 Pm"].map((time) => (
-                                                                    <Button
-                                                                        key={time}
-                                                                        variant={timeSlot === time ? "default" : "outline"}
-                                                                        className={`rounded-lg py-2 h-auto text-xs md:text-sm font-medium transition-all ${timeSlot === time
-                                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-1 ring-blue-600'
-                                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
-                                                                            }`}
-                                                                        onClick={() => setTimeSlot(time)}
-                                                                    >
-                                                                        {time}
-                                                                    </Button>
-                                                                ))}
+                                                                {renderSlots('evening')}
                                                             </TabsContent>
                                                         </div>
                                                     </Tabs>
@@ -465,11 +527,11 @@ export function Directory() {
                                                         <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4 justify-between bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4 sm:mb-6">
                                                             <div className="flex flex-col gap-1">
                                                                 <span className="text-xs font-medium text-slate-500">Date</span>
-                                                                <span className="text-sm font-semibold text-slate-800">{format(date, "MMM do, yyyy")}</span>
+                                                                <span className="text-sm font-semibold text-slate-800">{date?format(date, "MMM do, yyyy"):"__"}</span>
                                                             </div>
                                                             <div className="flex flex-col gap-1">
                                                                 <span className="text-xs font-medium text-slate-500">Time</span>
-                                                                <span className="text-sm font-semibold text-slate-800">{timeSlot}</span>
+                                                                <span className="text-sm font-semibold text-slate-800">{selectedSlot ? format(new Date(selectedSlot.available_time), "hh:mm a") : "00:00"}</span>
                                                             </div>
                                                             <div className="flex flex-col gap-1">
                                                                 <span className="text-xs font-medium text-slate-500">Duration</span>
@@ -477,7 +539,7 @@ export function Directory() {
                                                             </div>
                                                             <div className="flex flex-col gap-1 text-right sm:text-left">
                                                                 <span className="text-xs font-medium text-slate-500">Total Price</span>
-                                                                <span className="text-sm font-bold text-slate-900">₹350</span>
+                                                                <span className="text-sm font-bold text-slate-900">${bookingUser.hourlyrate}</span>
                                                             </div>
                                                         </div>
 
@@ -491,10 +553,7 @@ export function Directory() {
                                                             </Button>
                                                             <Button
                                                                 className="w-full sm:w-auto sm:flex-2 py-2.5 h-auto text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md rounded-xl font-medium"
-                                                                onClick={() => {
-                                                                    setBookingUser(null);
-                                                                    navigate("/booking-success");
-                                                                }}
+                                                                onClick={handleBook}
                                                             >
                                                                 Confirm & Pay
                                                             </Button>

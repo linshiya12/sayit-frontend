@@ -213,7 +213,7 @@ export function Profile() {
                                         {user.first_name+" "+user.last_name}
                                     </h1>
                                     <p className="text-sm text-slate-500 leading-relaxed">
-                                        Passionate language teacher with 8+ years of experience. Specialized in French and English instruction using immersive learning techniques.
+                                        {user.bio}
                                     </p>
 
                                     <div className="flex flex-wrap justify-center gap-2 pt-1">
@@ -236,11 +236,11 @@ export function Profile() {
                                         <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Post</p>
                                     </div>
                                     <div className="text-center">
-                                        <h3 className="font-bold text-lg text-slate-900">15.3K</h3>
+                                        <h3 className="font-bold text-lg text-slate-900">0</h3>
                                         <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Followers</p>
                                     </div>
                                     <div className="text-center">
-                                        <h3 className="font-bold text-lg text-slate-900">892</h3>
+                                        <h3 className="font-bold text-lg text-slate-900">0</h3>
                                         <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Following</p>
                                     </div>
                                 </div>

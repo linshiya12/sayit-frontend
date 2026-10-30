@@ -18,7 +18,7 @@ const adminSidebarItems = [
     { icon: Users, label: "User Management", href: "/admin/users" },
     { icon: CreditCard, label: "Premium Payments", href: "#" },
     { icon: FileText, label: "Post Management", href: "/admin/posts" },
-    { icon: Calendar, label: "Call & Chat Bookings", href: "#" },
+    { icon: Calendar, label: "Call Bookings", href: "#" },
     { icon: DollarSign, label: "Withdraw Requests", href: "#" },
     { icon: Tags, label: "Manage Offers & Coupons", href: "#" },
 ];

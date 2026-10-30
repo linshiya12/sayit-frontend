@@ -53,7 +53,8 @@ function App() {
           children: [
             { index: true, element: <Navigate to="/admin/users" replace /> },
             { path: "users", element: <UserManagement /> },
-            {path:"posts", element:<PostManagement />}
+            {path:"posts", element:<PostManagement />},
+            // {path:"chats", element:<ChatManagement />}
           ],
         },
       ],
